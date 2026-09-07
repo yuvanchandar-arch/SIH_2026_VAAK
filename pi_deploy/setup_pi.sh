@@ -33,7 +33,17 @@ else
     echo "  I2S overlay added. Note: Reboot required if not previously enabled."
 fi
 
-# 3. Install Python Dependencies
+# 3. Install System & Python Dependencies
+echo ""
+echo "Installing system dependencies..."
+sudo apt-get update && sudo apt-get install -y \
+    python3-pip \
+    python3-dev \
+    libasound2-dev \
+    portaudio19-dev \
+    ffmpeg \
+    alsa-utils
+
 echo ""
 echo "Installing Python edge dependencies..."
 pip install --upgrade pip

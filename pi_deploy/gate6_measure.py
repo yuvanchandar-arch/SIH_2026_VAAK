@@ -93,10 +93,11 @@ def main():
     
     if rss_samples:
         rss_val = rss_samples[-1]  # Most stable reading
-        print(f"\n  RSS Memory: {rss_val} KB ({rss_val/1024:.1f} MB)")
-        print(f"  RAM Status: {'PASSED ✅' if rss_val < 262144 else 'FAILED ❌'} (Target: <256 MB process)")
-        print(f"  Note: RSS includes Python runtime + numpy + tflite-runtime overhead,")
-        print(f"        not just the 64KB tensor arena. This is expected and normal.")
+        print(f"\n  Process RSS Memory: {rss_val} KB ({rss_val/1024:.1f} MB)")
+        print(f"  RAM Status: INFORMATIONAL (Full Linux Process RSS)")
+        print(f"  Note: Total process RSS includes Python interpreter, numpy, and tflite-runtime")
+        print(f"        overhead (~20-50 MB expected). The strict <256 KB RAM constraint applies")
+        print(f"        specifically to the model's dynamic tensor arena (verified at 64.41 KB in Gate 5b).")
     
     print("=" * 60)
 

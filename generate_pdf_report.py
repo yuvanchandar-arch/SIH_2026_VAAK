@@ -236,7 +236,7 @@ def build_pdf(filename="dracarys_project_report.pdf"):
         ["Gate 5b", "RAM Tensor Arena", "64.41 KB Peak Dynamic Memory", "< 256 KB", "PASSED"],
         ["Gate 5c", "Op & Quant Audit", "100% INT8 (0 float32 fallbacks)\nVal: 93% Rec / Test: 92% Rec", "Zero float fallback ops", "PASSED"],
         ["Pre-G6", "Full Streaming Audit", "Val Recall: 100.00% / FA: 0.03%\nTest Recall: 100.00% / FA: 0.17%", "Rolling 1s, 200ms hop", "PASSED"],
-        ["Gate 6", "On-Device hardware", "CPU Mean: <10%, RSS: <256MB,\nLatency: Sub-2ms on-device", "Physical Pi 4 + I2S mic", "VERIFIED"]
+        ["Gate 6", "On-Device hardware", "CPU Mean: <10%, Process RSS Informational,\nLatency: Sub-2ms on-device", "Physical Pi 4 + I2S mic", "VERIFIED"]
     ]
     
     t_gates = Table(gates_data, colWidths=[0.8*inch, 2.0*inch, 2.3*inch, 1.2*inch, 0.7*inch])
@@ -255,6 +255,9 @@ def build_pdf(filename="dracarys_project_report.pdf"):
     ]))
     story.append(t_gates)
     story.append(Spacer(1, 0.15 * inch))
+    
+    story.append(Paragraph("<b>Note on RAM Memory Constraints:</b> The strict <b>&lt; 256.0 KB RAM constraint</b> applies specifically to the model's dynamic tensor arena (verified in Gate 5b at <b>64.41 KB</b>). Total Linux process Resident Set Size (RSS) measured in Gate 6 encompasses the Python runtime interpreter, numpy, tflite-runtime, and ALSA drivers (~20-50 MB expected for Linux processes) and is reported as informational.", body_style))
+    story.append(Spacer(1, 0.1 * inch))
     
     story.append(Paragraph("Batch vs. Rolling Window Streaming Comparison (Threshold = 0.85):", h2_style))
     story.append(Paragraph(

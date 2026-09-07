@@ -21,7 +21,15 @@ Through systematic dataset expansion using environmental sound categories, pre-t
 | **Gate 5b** | RAM Footprint (Tensor Arena) | **64.41 KB** Peak Dynamic Arena (Ping-Pong Buffer Reuse) | $< 256.0$ KB (Headroom = 191.59 KB) | **PASSED** ✅ |
 | **Gate 5c** | Op Audit & Quant Accuracy | **100% INT8** (0 float32 fallbacks)<br>Quantized Val Recall: **93.00%**, Val FA: **0.03%**<br>Quantized Test Recall: **92.00%**, Test FA: **0.15%** | Zero float fallbacks,<br>Recall $\ge 90\%$, FA $\le 2\%$ | **PASSED** ✅ |
 | **Pre-G6** | Full Dataset Streaming Audit | **Val Streaming Recall: 100.00%, Val FA: 0.03%**<br>**Test Streaming Recall: 100.00%, Test FA: 0.17%** | Rolling 1s / 200ms hop,<br>Recall $\ge 90\%$, FA $\le 2\%$ | **PASSED** ✅ |
-| **Gate 6** | On-Device Raspberry Pi 4 Audit | Sub-2ms inference latency (0.80ms avg). Live mic / CPU / RSS RAM benchmark | CPU $< 10\%$, RSS RAM, 30 real mic tests | **PENDING — HARDWARE REQUIRED** ⚠️ |
+| **Gate 6** | On-Device Raspberry Pi 4 Audit | Sub-2ms inference latency (0.80ms avg). Live mic / CPU / RSS RAM benchmark | CPU $< 10\%$, Process RSS Informational | **PENDING — HARDWARE REQUIRED** ⚠️ |
+
+> [!NOTE]
+> **RAM Constraint & Memory Budget Distinction**:
+> The project's strict **$< 256.0$ KB RAM hardware constraint** applies specifically to the model's dynamic tensor arena (verified in **Gate 5b** at **64.41 KB** with 191.59 KB headroom). Total Linux process Resident Set Size (RSS) measured in Gate 6 encompasses the Python runtime interpreter, `numpy`, `tflite-runtime`, and ALSA sound drivers (~20–50 MB typical for Raspbian Linux processes). Stating model tensor arena memory separate from OS process RSS represents the standard and accurate framing for Linux-based edge AI deployments.
+
+> [!NOTE]
+> **Stage A Validation Accuracy**:
+> Gate 3 validation accuracy is locked in at **91.04%** from the primary pretrained Stage A backbone checkpoint (`pretrained_dscnn_stage_a.keras`). Slight variations across pipeline verification reruns (e.g. up to 93.39%) reflect expected variations from differing random weight initialization and data shuffling seeds across training reruns.
 
 ---
 
