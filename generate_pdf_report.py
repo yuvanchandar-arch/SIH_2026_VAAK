@@ -300,17 +300,10 @@ def build_pdf(filename="dracarys_project_report.pdf"):
         code_style
     ))
     
-    story.append(Paragraph("Step 3: Setup Virtual Environment & Install pinned Dependencies", h2_style))
+    story.append(Paragraph("Step 3: Activate Virtual Environment & Run Real-time Listening Client", h2_style))
     story.append(Paragraph(
-        "Configure virtual environment and downgrade numpy to avoid tflite-runtime conflict:\n"
-        "<code>python3 -m venv venv\nsource venv/bin/activate\npip install -r requirements_pi.txt\npip install \"numpy&lt;2\"</code>",
-        code_style
-    ))
-    
-    story.append(Paragraph("Step 4: Run Real-time Listening Client", h2_style))
-    story.append(Paragraph(
-        "Run the listening script:\n"
-        "<code>python3 live_kws.py</code>",
+        "Activate virtual environment (created during setup_pi.sh) and run live KWS:\n"
+        "<code>source venv/bin/activate\npython3 live_kws.py</code>",
         code_style
     ))
     

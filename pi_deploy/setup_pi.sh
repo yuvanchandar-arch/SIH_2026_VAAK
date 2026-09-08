@@ -33,21 +33,28 @@ else
     echo "  I2S overlay added. Note: Reboot required if not previously enabled."
 fi
 
-# 3. Install System & Python Dependencies
+# 3. Install System Dependencies & Setup Python Virtual Environment
 echo ""
 echo "Installing system dependencies..."
 sudo apt-get update && sudo apt-get install -y \
     python3-pip \
     python3-dev \
+    python3-venv \
     libasound2-dev \
     portaudio19-dev \
     ffmpeg \
     alsa-utils
 
 echo ""
-echo "Installing Python edge dependencies..."
-pip install --upgrade pip
-pip install tflite-runtime numpy sounddevice websocket-client psutil
+echo "Setting up Python virtual environment (venv)..."
+if [ ! -d "venv" ]; then
+    python3 -m venv venv
+    echo "  Created virtual environment in ~/pi_deploy/venv"
+fi
+
+echo "Installing Python edge dependencies into venv..."
+./venv/bin/pip install --upgrade pip
+./venv/bin/pip install tflite-runtime "numpy<2" sounddevice websocket-client psutil
 
 # 4. Verify I2S Capture Devices
 echo ""
@@ -60,4 +67,6 @@ fi
 
 echo ""
 echo "=== Deployment Setup Complete ==="
-echo "To run live keyword spotting: python3 pi_deploy/live_kws.py"
+echo "To run live keyword spotting:"
+echo "  source venv/bin/activate"
+echo "  python3 live_kws.py"
