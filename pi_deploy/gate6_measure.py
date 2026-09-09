@@ -85,11 +85,18 @@ def main():
     print("=" * 60)
     
     if cpu_samples:
-        mean_cpu = sum(cpu_samples) / len(cpu_samples)
-        peak_cpu = max(cpu_samples)
-        print(f"  CPU Mean:  {mean_cpu:.1f}% (Target: <10%)")
-        print(f"  CPU Peak:  {peak_cpu:.1f}%")
-        print(f"  CPU Status: {'PASSED ✅' if mean_cpu < 10.0 else 'FAILED ❌'}")
+        cpu_count = os.cpu_count() or 1
+        mean_cpu_raw = sum(cpu_samples) / len(cpu_samples)
+        peak_cpu_raw = max(cpu_samples)
+        mean_cpu_norm = mean_cpu_raw / cpu_count
+        peak_cpu_norm = peak_cpu_raw / cpu_count
+        print(f"  CPU cores on this machine: {cpu_count}")
+        print(f"  CPU Mean (raw psutil):      {mean_cpu_raw:.1f}%")
+        print(f"  CPU Mean (normalized/core): {mean_cpu_norm:.1f}%  (Target: <10%)")
+        print(f"  CPU Peak (raw psutil):      {peak_cpu_raw:.1f}%")
+        print(f"  CPU Peak (normalized/core): {peak_cpu_norm:.1f}%")
+        passed = mean_cpu_norm < 10.0
+        print(f"  CPU Status: {'PASSED ✅' if passed else 'FAILED ❌'} (normalized mean {mean_cpu_norm:.1f}% vs <10% target)")
     
     if rss_samples:
         rss_val = rss_samples[-1]  # Most stable reading

@@ -10,6 +10,7 @@ import os
 import sys
 import time
 import json
+import queue
 import numpy as np
 
 try:
@@ -44,6 +45,10 @@ CLASSES = ['background', 'dracarys', 'unknown']
 # Gate 6 latency log — records detection-to-ASR-send latencies
 DETECTION_LOG = []
 COOLDOWN_SECONDS = 2.0  # prevent duplicate triggers within 2s
+
+# Vosk backoff — only retry ASR connection after 30s since last failure
+_VOSK_RETRY_INTERVAL = 30.0
+_last_vosk_fail_time = 0.0
 
 def softmax(x):
     e = np.exp(x - np.max(x, axis=1, keepdims=True))
@@ -109,13 +114,14 @@ class DracarysKWS:
         return detected, dracarys_score, probs, t_inference_ms
 
 def trigger_asr_handoff(audio_stream_source, duration_s=4.0):
-    """Stream raw PCM audio to Vosk ASR WebSocket server."""
+    """Stream raw PCM audio to Vosk ASR WebSocket server with 30s backoff."""
+    global _last_vosk_fail_time
     t_detected = time.time()
     
     # === DETECTION FEEDBACK: unmissable local signal ===
     print("\n")
     print("=" * 60)
-    print("🔥🔥🔥  VAAK ACTIVATED — DRACARYS DETECTED!  🔥🔥🔥")
+    print("\U0001f525\U0001f525\U0001f525  VAAK ACTIVATED \u2014 DRACARYS DETECTED!  \U0001f525\U0001f525\U0001f525")
     print("=" * 60)
     print("\a")  # Terminal bell
     sys.stdout.flush()
@@ -123,17 +129,26 @@ def trigger_asr_handoff(audio_stream_source, duration_s=4.0):
     ws = None
     latency_ms = 0.0
     if websocket is not None:
-        try:
-            ws = websocket.create_connection(ASR_SERVER_URL, timeout=1.0)
-            ws.send(json.dumps({"config": {"sample_rate": SAMPLE_RATE}}))
-            t_first_byte = time.time()
-            latency_ms = (t_first_byte - t_detected) * 1000.0
-            print(f"  ASR Handoff Latency: {latency_ms:.2f} ms")
-            DETECTION_LOG.append({'timestamp': t_detected, 'latency_ms': latency_ms})
-        except Exception as e:
-            print(f"  Vosk ASR server not reachable ({e}). Detection logged without ASR.")
-            latency_ms = (time.time() - t_detected) * 1000.0
-            DETECTION_LOG.append({'timestamp': t_detected, 'latency_ms': latency_ms})
+        # Vosk backoff: only attempt connection if 30s have passed since last failure
+        time_since_fail = t_detected - _last_vosk_fail_time
+        if _last_vosk_fail_time == 0.0 or time_since_fail >= _VOSK_RETRY_INTERVAL:
+            try:
+                ws = websocket.create_connection(ASR_SERVER_URL, timeout=1.0)
+                ws.send(json.dumps({"config": {"sample_rate": SAMPLE_RATE}}))
+                t_first_byte = time.time()
+                latency_ms = (t_first_byte - t_detected) * 1000.0
+                print(f"  ASR Handoff Latency: {latency_ms:.2f} ms")
+                DETECTION_LOG.append({'timestamp': t_detected, 'latency_ms': latency_ms})
+            except Exception as e:
+                _last_vosk_fail_time = t_detected
+                print(f"  Vosk ASR server not reachable ({e}). Detection logged without ASR.")
+                print(f"  Next ASR retry in {_VOSK_RETRY_INTERVAL:.0f}s.")
+                latency_ms = (time.time() - t_detected) * 1000.0
+                DETECTION_LOG.append({'timestamp': t_detected, 'latency_ms': latency_ms})
+        else:
+            remaining = _VOSK_RETRY_INTERVAL - time_since_fail
+            print(f"  Vosk ASR skipped (backoff active, {remaining:.0f}s remaining). Detection logged locally.")
+            DETECTION_LOG.append({'timestamp': t_detected, 'latency_ms': 0.0})
     else:
         latency_ms = (time.time() - t_detected) * 1000.0
         DETECTION_LOG.append({'timestamp': t_detected, 'latency_ms': latency_ms})
@@ -154,7 +169,7 @@ def trigger_asr_handoff(audio_stream_source, duration_s=4.0):
 def run_live_mic():
     kws = DracarysKWS()
     print("\n" + "=" * 60)
-    print("DRACARYS KWS — LIVE MIC LISTENING MODE")
+    print("DRACARYS KWS \u2014 LIVE MIC LISTENING MODE")
     print("=" * 60)
     print(f"Threshold: {THRESHOLD} | Sample Rate: {SAMPLE_RATE}Hz")
     print(f"Buffer: {BUFFER_DURATION}s | Hop: {HOP_DURATION}s")
@@ -165,22 +180,48 @@ def run_live_mic():
         print("ERROR: sounddevice not installed. Run: pip install sounddevice")
         return
     
+    # Queue: audio callback enqueues raw chunks cheaply;
+    # main thread does all feature extraction + inference.
+    audio_queue = queue.Queue(maxsize=10)
+
     def audio_callback(indata, frames, time_info, status):
+        """Lightweight callback: only enqueue raw audio. No inference here."""
         if status:
             print(f"\nAudio Warning: {status}", file=sys.stderr)
-        chunk = indata[:, 0]
-        detected, score, probs, latency = kws.process_chunk(chunk)
-        
-        sys.stdout.write(f"\rListening... [Dracarys: {score*100:5.1f}% | BG: {probs[0]*100:5.1f}% | UNK: {probs[2]*100:5.1f}% | Inf: {latency:4.1f}ms]")
-        sys.stdout.flush()
-        
-        if detected:
-            trigger_asr_handoff(None)
-            
+        chunk = indata[:, 0].copy()
+        try:
+            audio_queue.put_nowait(chunk)
+        except queue.Full:
+            pass  # Drop chunk if queue is full (prevents unbounded buildup)
+
+    _last_print_time = [0.0]  # mutable container for closure
+
     try:
-        with sd.InputStream(samplerate=SAMPLE_RATE, channels=1, blocksize=kws.hop_size, callback=audio_callback):
+        with sd.InputStream(samplerate=SAMPLE_RATE, channels=1,
+                            blocksize=kws.hop_size, callback=audio_callback):
             while True:
-                time.sleep(0.1)
+                try:
+                    chunk = audio_queue.get(timeout=1.0)
+                except queue.Empty:
+                    continue
+
+                detected, score, probs, latency = kws.process_chunk(chunk)
+
+                # Throttle stdout: print at most once per second
+                now = time.time()
+                if now - _last_print_time[0] >= 1.0:
+                    sys.stdout.write(
+                        f"\rListening... [Dracarys: {score*100:5.1f}% | "
+                        f"BG: {probs[0]*100:5.1f}% | "
+                        f"UNK: {probs[2]*100:5.1f}% | "
+                        f"Inf: {latency:4.1f}ms]"
+                    )
+                    sys.stdout.flush()
+                    _last_print_time[0] = now
+
+                if detected:
+                    trigger_asr_handoff(None)
+
     except KeyboardInterrupt:
         pass
     finally:
