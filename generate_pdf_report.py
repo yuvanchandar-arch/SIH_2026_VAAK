@@ -236,7 +236,7 @@ def build_pdf(filename="dracarys_project_report.pdf"):
         ["Gate 5b", "RAM Tensor Arena", "64.41 KB Peak Dynamic Memory", "< 256 KB", "PASSED"],
         ["Gate 5c", "Op & Quant Audit", "100% INT8 (0 float32 fallbacks)\nVal: 93% Rec / Test: 92% Rec", "Zero float fallback ops", "PASSED"],
         ["Pre-G6", "Full Streaming Audit", "Val Recall: 100.00% / FA: 0.03%\nTest Recall: 100.00% / FA: 0.17%", "Rolling 1s, 200ms hop", "PASSED"],
-        ["Gate 6", "On-Device hardware", "CPU Mean: <10%, Process RSS Informational,\nLatency: Sub-2ms on-device", "Physical Pi 4 + I2S mic", "VERIFIED"]
+        ["Gate 6", "On-Device hardware", "CPU: 2.1% norm (8.2% raw), RSS: 60.3 MB\nLatency: 0.80ms avg on-device", "Physical Pi 4 + I2S mic", "PASSED"]
     ]
     
     t_gates = Table(gates_data, colWidths=[0.8*inch, 2.0*inch, 2.3*inch, 1.2*inch, 0.7*inch])

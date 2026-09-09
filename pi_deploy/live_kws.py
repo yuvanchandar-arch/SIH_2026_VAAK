@@ -6,7 +6,15 @@ Uses verbatim features.py module for identical feature extraction.
 Streams audio to Vosk ASR server upon keyword detection.
 """
 
+# MUST be set before numpy is imported — prevents OpenBLAS/OMP from spawning
+# multiple FFT worker threads across all cores (which caused 114% raw CPU /
+# 30% normalized CPU fail in Gate 6). Single-threaded FFT: 8.2% raw / 2.1% normalized.
 import os
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+
 import sys
 import time
 import json

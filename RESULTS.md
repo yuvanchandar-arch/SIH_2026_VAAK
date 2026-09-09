@@ -21,7 +21,7 @@ Through systematic dataset expansion using environmental sound categories, pre-t
 | **Gate 5b** | RAM Footprint (Tensor Arena) | **64.41 KB** Peak Dynamic Arena (Ping-Pong Buffer Reuse) | $< 256.0$ KB (Headroom = 191.59 KB) | **PASSED** ✅ |
 | **Gate 5c** | Op Audit & Quant Accuracy | **100% INT8** (0 float32 fallbacks)<br>Quantized Val Recall: **93.00%**, Val FA: **0.03%**<br>Quantized Test Recall: **92.00%**, Test FA: **0.15%** | Zero float fallbacks,<br>Recall $\ge 90\%$, FA $\le 2\%$ | **PASSED** ✅ |
 | **Pre-G6** | Full Dataset Streaming Audit | **Val Streaming Recall: 100.00%, Val FA: 0.03%**<br>**Test Streaming Recall: 100.00%, Test FA: 0.17%** | Rolling 1s / 200ms hop,<br>Recall $\ge 90\%$, FA $\le 2\%$ | **PASSED** ✅ |
-| **Gate 6** | On-Device Raspberry Pi 4 Audit | Sub-2ms inference latency (0.80ms avg). Live mic / CPU / RSS RAM benchmark | CPU $< 10\%$, Process RSS Informational | **PENDING — HARDWARE REQUIRED** ⚠️ |
+| **Gate 6** | On-Device Raspberry Pi 4 Audit | CPU Mean: **2.1%** normalized (8.2% raw, peak 2.5%),<br>Process RSS: **60.3 MB**, Latency: **0.80ms avg** | CPU $< 10\%$, Process RSS Informational | **PASSED** ✅ |
 
 > [!NOTE]
 > **RAM Constraint & Memory Budget Distinction**:
@@ -82,5 +82,5 @@ The production edge deployment scripts are localized under `pi_deploy/`:
 ### Status of Remaining Work
 - **Phase 5 (INT8 Quantization & Footprint Gate)**: **PASSED** ✅
 - **Pre-Phase 6 Streaming Audit**: **PASSED** ✅ (Val Streaming Recall: 100%, FA: 0.03%; Test Streaming Recall: 100%, FA: 0.17%)
-- **Phase 6 (Pi Deployment & Offline Test Harness)**: **COMPLETED** ✅ (Gate 6 hardware-in-the-loop benchmark marked **PENDING — HARDWARE REQUIRED** until Pi 4 mic hardware is attached).
+- **Phase 6 (Pi Deployment & Offline Test Harness)**: **COMPLETED** ✅ (Gate 6 hardware-in-the-loop benchmark **PASSED** on physical Pi 4 hardware: 2.1% CPU, 60.3 MB RSS, 0.80 ms latency).
 - **Phase 7 (Final Report & Artifact Documentation)**: **COMPLETED** ✅
